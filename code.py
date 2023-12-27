@@ -1,29 +1,32 @@
-from flask import Flask, request, jsonify, send_from_directory
-import json
-import os
+from flask import Flask, render_template, request, jsonify
+import socket
 
 app = Flask(__name__)
 
-@app.route('/', methods=['GET'])
-def home():
-    for filename in os.listdir('.'):
-        if filename.endswith('.html'):
-            return app.send_static_file(filename)
-    return 'No HTML files found in this directory', 404
+def get_network_interfaces():
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    netmask = get_netmask(ip_address)
+    return [{"hostname": hostname, "ip_address": ip_address, "netmask": netmask}]
 
-@app.route('/<path:path>', methods=['GET'])
-def get_html(path):
-    if path.endswith('.html'):
-        return send_from_directory('.', path)
-    return 'Not an HTML file', 400
+def get_netmask(ip_address):
+    # Este é um exemplo simples de como obter a máscara de rede. 
+    # Você pode precisar implementar sua própria lógica para obter a máscara de rede correta.
+    return "255.255.255.0"
 
-@app.route('/login', methods=['POST'])
-def login():
-    data = request.get_json()
-    username = data['username']
-    password = data['password']
-    print(f'Credenciais recebidas: {username}, {password}')
-    return jsonify({'message': 'Credenciais recebidas com sucesso!'}), 200
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    if request.method == 'POST':
+        net = request.form['net']
+        channel = request.form['channel']
+        interfaces = get_network_interfaces()
+        return render_template('result.html', net=net, channel=channel, interfaces=interfaces)
+    return render_template('index.html')
+
+@app.route('/get-network-interfaces', methods=['GET'])
+def get_network_interfaces_endpoint():
+    interfaces = get_network_interfaces()
+    return jsonify(interfaces)
 
 if __name__ == '__main__':
     app.run(debug=True)
